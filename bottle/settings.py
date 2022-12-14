@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-g%pg-y=)@=fi3!x_fuqslw^6qo0)#*b%1y+hluovq=@-8m%qb-
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-
+# PYTHON_ISOLATE_WORKER_DEPENDENCIES = 1
 
 # Application definition
 
