@@ -16,7 +16,6 @@ import pandas as pd
 pd.set_option('display.max_columns', None)
 import numpy as np
 
-import cv2
 import torch
 import torchvision
 
@@ -172,7 +171,7 @@ def resmaps_ssim(imgs_input, imgs_pred):
     return scores, resmaps
 
 
-model_path = f"{os.getcwd()}\\bottle/model/mvtecCAE_b8_e6.hdf5"
+model_path = f"{os.getcwd()}/bottle/model/mvtecCAE_b8_e6.hdf5"
 
 
 def load_model_HDF5(model_path):
