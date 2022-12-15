@@ -135,7 +135,7 @@ def mssim_metric(dynamic_range):
 # custom function to load model
 def get_model_info(model_path):
     dir_name = os.path.dirname(model_path)
-    with open(f"{os.getcwd()}\\screw/model/info.json", "r") as read_file:
+    with open(f"{os.getcwd()}/screw/model/info.json", "r") as read_file:
         info = json.load(read_file)
     return info
 
@@ -504,7 +504,7 @@ def screw_prediction(screw_model,
     return final_stat_screw_df, plots
 
 
-model_path = f"{os.getcwd()}\\screw/model/mvtecCAE_b8_e3.hdf5"
+model_path = f"{os.getcwd()}/screw/model/mvtecCAE_b8_e3.hdf5"
 screw_model, info, _ = load_model_HDF5(model_path)
 screw_model.summary()
 

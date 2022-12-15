@@ -135,7 +135,7 @@ def mssim_metric(dynamic_range):
 # custom function to load model
 def get_model_info(model_path):
     dir_name = os.path.dirname(model_path)
-    with open(f"{os.getcwd()}\\transistor/model/info.json", "r") as read_file:
+    with open(f"{os.getcwd()}/transistor/model/info.json", "r") as read_file:
         info = json.load(read_file)
     return info
 
@@ -492,7 +492,7 @@ def transistor_prediction(transistor_model,
     return final_stat_transistor_df, plots
 
 
-model_path = f"{os.getcwd()}\\transistor/model/mvtecCAE_b8_e2.hdf5"
+model_path = f"{os.getcwd()}/transistor/model/mvtecCAE_b8_e2.hdf5"
 tra_model, info, _ = load_model_HDF5(model_path)
 tra_model.summary()
 

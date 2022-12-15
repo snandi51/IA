@@ -135,7 +135,7 @@ def mssim_metric(dynamic_range):
 def get_model_info(model_path):
     dir_name = os.path.dirname(model_path)
     print(os.getcwd())
-    with open(f"{os.getcwd()}\\capsule/model/info.json", "r") as read_file:
+    with open(f"{os.getcwd()}/capsule/model/info.json", "r") as read_file:
         info = json.load(read_file)
     return info
 
@@ -605,7 +605,7 @@ def capsules_prediction(cap_model,
     return final_stats_df, plots
 
 
-model_path = f"{os.getcwd()}\\capsule/model/mvtecCAE_b8_e24.hdf5"
+model_path = f"{os.getcwd()}/capsule/model/mvtecCAE_b8_e24.hdf5"
 cap_model, info, _ = load_model_HDF5(model_path)
 cap_model.summary()
 

@@ -49,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -140,8 +141,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(os.path.dirname(BASE_DIR), 'static_cdn')
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 MEDIA_URL = '/media/'
@@ -150,6 +155,8 @@ MEDIA_ROOT_TEST = os.path.join(BASE_DIR, 'media/test/')
 MEDIA_ROOT_CAPSULE = os.path.join(BASE_DIR, 'media/capsule/')
 MEDIA_ROOT_TRANSISTOR = os.path.join(BASE_DIR, 'media/transistor/')
 MEDIA_ROOT_SCREW = os.path.join(BASE_DIR, 'media/screw/')
+
+CSRF_TRUSTED_ORIGINS = ['https://toad.azurewebsites.net']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field

@@ -278,7 +278,7 @@ def mssim_metric(dynamic_range):
 def get_model_info(model_path):
     dir_name = os.path.dirname(model_path)
     print(os.getcwd())
-    with open(f"{os.getcwd()}\\bottle/model/info.json", "r") as read_file:
+    with open(f"{os.getcwd()}/bottle/model/info.json", "r") as read_file:
         info = json.load(read_file)
     return info
 
