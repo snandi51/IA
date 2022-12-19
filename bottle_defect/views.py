@@ -952,6 +952,7 @@ def upload_file(request):
             image_total = len(image_count)
 
             context = {
+                'list_of_img': list_of_files,
                 'data': request.session.get('data'),
                 'images': list_of_files,
                 'lower_bound': request.session.get('lower_bound'),

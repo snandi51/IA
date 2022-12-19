@@ -863,6 +863,7 @@ def upload_capsule(request):
             context['lift_iqr_right'] = f"{cpl_df['lift_iqr_right'][0]}"
 
             context = {
+                'list_of_img': list_of_files,
                 'data': data,
                 'images': list_of_files,
                 'total': total,

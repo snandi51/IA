@@ -728,6 +728,7 @@ def upload_screw(request):
             print(data)
 
             context = {
+                'list_of_img': list_of_files,
                 'data': request.session.get('data'),
                 'images': list_of_files,
                 'lower_bound': request.session.get('lower_bound'),
