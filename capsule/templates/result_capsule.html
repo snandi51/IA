@@ -76,6 +76,13 @@ overflow-x: hidden;
     div.scrollmenu a:hover {
       border-color: red;
     }
+
+    .box_1:hover {
+      -webkit-transform:scale(1.25);
+      -ms-transform:scale(1.25);
+      transform:scale(1.05);
+      transition:.6s ease;
+    }
 </style>
 
 <script>
@@ -706,7 +713,7 @@ overflow-x: hidden;
             <h5 style="font-family: Calibri; font-size:18px; color:#7249AE; "><b>Analysis on input images</b></h5>
             {% for i in data  %}
             {% if i.prediction_result == False %}
-            <div style="font-family: Calibri; margin-top: 30px; margin-left:-100px; margin-right:150px; color:black; font-size:18px; border: 2px solid red;">
+            <div class="box_1" style="font-family: Calibri; margin-top: 30px; margin-left:-100px; margin-right:150px; color:black; font-size:18px; border: 2px solid red;">
                 <a href="#home" onclick="getNum('{{i.actual_lbl}}')"><b>{{i.actual_lbl}}</b></a><br>
                 <a href="#news"><img src="media/capsule/{{i.actual_lbl}}" height="70" width="70"></a><br>
                 <a href="#contact" style="margin-top:20px;"><b>{{i.input_img_range_left}}</b></a><br>
@@ -714,7 +721,7 @@ overflow-x: hidden;
                 <a href="#about" style="color:red;"><b>{{i.prediction}}</b></a><br>
             </div>
             {% elif i.prediction_result == True %}
-            <div style="font-family: Calibri; margin-top: 30px; margin-left:-100px; margin-right:150px; color:black; font-size:18px; border: 2px solid green;">
+            <div class="box_1" style="font-family: Calibri; margin-top: 30px; margin-left:-100px; margin-right:150px; color:black; font-size:18px; border: 2px solid green;">
                 <a href="#home" onclick="getNum('{{i.actual_lbl}}')"><b>{{i.actual_lbl}}</b></a><br>
                 <a href="#news"><img src="media/capsule/{{i.actual_lbl}}" height="70" width="70"></a><br>
                 <a href="#contact" style="margin-top:20px;"><b>{{i.input_img_range_left}}</b></a><br>
