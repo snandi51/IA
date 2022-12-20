@@ -5,6 +5,7 @@ django==3.2.15
 djangorestframework==3.13.1
 joblib==1.1.0
 keras==2.8.0
+plotly
 matplotlib==3.5.3
 whitenoise
 numpy==1.21.6
