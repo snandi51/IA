@@ -115,14 +115,14 @@
       }
     }
 
-    function progress_bar(){
-        console.log('calling function');
-        var body_div = document.getElementById('body_1');
-        var div_css = document.getElementById('div_css')
+<!--    function progress_bar(){-->
+<!--        console.log('calling function');-->
+<!--        var body_div = document.getElementById('body_1');-->
+<!--        var div_css = document.getElementById('div_css')-->
 
-        body_div.style.opacity = 0.5;
-        div_css.style.display = 'block';
-      }
+<!--        body_div.style.opacity = 0.5;-->
+<!--        div_css.style.display = 'block';-->
+<!--      }-->
 </script>
 
 <body id="body_1" style="height: auto; overflow-y: hidden;">
@@ -154,35 +154,18 @@
                             </center>
                         {% else %}
                             <center>
-<!--                                <label class="form-label" for="file" style="color:black;">Browse to choose a file</label>-->
-<!--                                <center>-->
-<!--                                    <button class="btn btn-outline-success" style="margin-top:22px; background-color: transparent; border-width: thin; font-family: 'Ubuntu'; height: 30px; border-radius: 4px; width: 150px; border-color: #57CF80; color: #57CF80; font-weight: 500;"><img style="height: 12px;  margin-right: 6px;" src="static/assets/img/upload.png"/>Upload</button>-->
-<!--                                    <input type="file" name="file1" id="file2" hidden onchange="move()" style="margin-top:-80px; margin-left: 120px;" multiple = "true" webkitdirectory="true" directory = "true"><br>-->
-<!--                                </center>-->
-                                <input type="file" class="form-control"  name="file1" id="file2" onchange="move()" style="margin-top: 10px;  width:300px;" multiple = "true" webkitdirectory="true" directory = "true"><br>
+                                <input type="file" class="form-control"  name="file1" id="file2" onchange="move()" style="margin-top: 10px;  width:300px;" multiple = "true" webkitdirectory="true" directory = "true" required><br>
 <!--                                <i class="text-white" style="font-size: 12px ; margin-top:30px;">Only JPG, JPEG and PNG are allowed</i>-->
                             </center>
                         {% endif %}
 
-                        <!--                             <img src="{{filePathName}}" alt="path" width="150" height="150">-->
-                        <!--                                {{filePathName}}-->
-
-                        <!--                                {% if filePathName %}-->
-                        <!--                                    <p>Above image is <b>{{predictions}}</b> as per our analysis</p>-->
-                        <!--                                {% endif %}-->
                     </div>
                 </div>
-                <!--               <div class="progress" style="margin-top: 35px;height: 5px;">-->
-                <!--                    <div class="progress-bar" role="progressbar" style="width: 25%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>-->
-                <!--               </div>-->
                 <div class="progress" id="show_block" style="margin-top:-20px; width: 350px; border-style: groove; border-color: white; height: 10px;margin-left: 70px;  ">
                     <div class="progress-bar" role="progressbar" id="bar" >
                     </div>
                 </div>
             </fieldset>
-<!--            <p>Lift IQR : {{lift_iqr}}</p>-->
-<!--            <p>Table : {{table}}</p>-->
-<!--            <p>Image URL : {{url}}</p>-->
             <div class="form-group">
                 <button class="btn-proceed btn-text" style="color:black; border: none; margin-top: 30px; margin-left: 320px;"
                         type="submit" onclick="progress_bar()">

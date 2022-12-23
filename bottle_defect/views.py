@@ -1,3 +1,4 @@
+import shutil
 from random import random
 
 from django.shortcuts import render
@@ -315,9 +316,9 @@ def get_img_dict_input(directory: Path):
 
     tensor_dict = {}
 
-    dir_name=directory.name
+    dir_name = directory.name
 
-    fname=(dir_name.split("."))[0]
+    fname = dir_name
 
     curr_np_arr = np.array([
 
@@ -639,343 +640,493 @@ import plotly.io as pio
 
 from plotly.offline import plot, offline
 from plotly.graph_objs import Bar, pie
+import shutil
 
 
 @login_required()
 def upload_file(request):
     if request.method == 'POST':
-        context = {}
-        assessment_portfolio: request.session.get('assessment_portfolio')
+        request.session['table_new'] = []
+        request.session['repeat_count'] = 0
         uploaded_file = request.FILES['file1']
-
         file_list = []
         for i in request.FILES.getlist('file1'):
             file_list.append(i)
+        try:
+            shutil.rmtree('media/test/')
+            shutil.rmtree('media/fig1/')
+            shutil.rmtree('media/fig2/')
+        except Exception as ex:
+            pass
+        os.mkdir('media/fig1/')
+        os.mkdir('media/fig2/')
+        fs = FileSystemStorage(location='media/test')
+        for i in file_list:
+            # path = os.listdir(settings.MEDIA_ROOT_TEST)
+            # try:
+            #     if i.name in path:
+            #         # path.remove(i.name)
+            #        os.remove('media/test/' + i.name)
+            # except Exception as ex:
+            #     print(ex)
 
-        if len(file_list) is 1:
-            fs = FileSystemStorage()
-            name = fs.save(uploaded_file.name, uploaded_file)
-            context["url"] = fs.url(name)
-            testimage = '.'+context["url"]
-            context['name'] = testimage
-            # testimage = image.load_img(name)
+            fs.save(i.name, i)
+            # context["url_{}".format(i)] = fs.url(fs.save(i.name, i))
+            # list_of_files = fs.url(fs.save(i.name, i))
+            # path = os.path.join(settings.BASE_DIR, 'media\\test\\')
 
-            assessment_portfolio = request.session.get('assessment_portfolio')
-            context["assessment_portfolio"] = assessment_portfolio
-            context['test_image'] = testimage
-            print(f"Imag url is {testimage}")
-            bottle_imgs = get_img_dict(Path(r"./bottle/data"))
-            print(bottle_imgs.keys())
-            bottles_data_dict = create_in_pred_res_dict(bottle_model, bottle_imgs)
-            all_merged_bottles, all_merged_bottles_labels = create_images_batch_from_dict(bottles_data_dict)
-            for idx, k in enumerate(bottles_data_dict.keys()):
-                f, h, r = bottles_data_dict[k]
-                print(f"{idx, k}\nf - {f.shape}")
-                print(f"h - {h.shape}")
-                print(f"r - {r.shape}")
-                print()
-        else:
-            fs = FileSystemStorage(location='media/test')
-            for i in file_list:
-                path = os.listdir(settings.MEDIA_ROOT_TEST)
-                try:
-                    if i.name in path:
-                        # path.remove(i.name)
-                       os.remove('media/test/' + i.name)
-                except Exception as ex:
-                    print(ex)
+        list_of_files = os.listdir('media/test')
 
-                fs.save(i.name, i)
-                # context["url_{}".format(i)] = fs.url(fs.save(i.name, i))
-                # list_of_files = fs.url(fs.save(i.name, i))
-                # path = os.path.join(settings.BASE_DIR, 'media\\test\\')
+        request.session['list_of_files'] = list_of_files
 
-                list_of_files = os.listdir('media/test')
-                context['list_of_files'] = list_of_files
-                print(len(list_of_files))
+    if request.method == 'POST' or request.method == 'GET' and (request.session.get('repeat_count') != 0):
+        # assessment_portfolio: request.session.get('assessment_portfolio')
 
-                # file = ('media/test/' + "url_{}".format(i))
+        new_table = request.session.get('table_new')
+        repeat_count_total = request.session.get('repeat_count')
+        context = {}
+        file_list = request.session.get('file_list')
 
-            assessment_portfolio = request.session.get('assessment_portfolio')
-            context["assessment_portfolio"] = assessment_portfolio
+        bottle_imgs_dic = get_img_dict_input(Path(rf"{'media/test/' + (request.session.get('list_of_files')[repeat_count_total])}"))
+        bottles_data_dict_img = create_in_pred_res_dict(bottle_model, bottle_imgs_dic)
+        all_merged_bottles_multiple, all_merged_bottles_labels_multiple = create_images_batch_from_dict(bottles_data_dict_img)
+        # for idx, k in enumerate(bottles_data_dict_img.keys()):
+        #     f_input, h_input, r_input = bottles_data_dict_img[k]
+        #     print(f"{idx, k}\nf_input - {f_input.shape}")
+        #     print(f"h_input - {h_input.shape}")
+        #     print(f"r_input - {r_input.shape}")
+        #     print()
 
-            # print(f"Imag url is {list_of_files}")
+        bottle_imgs = get_img_dict(Path(r"./bottle/data"))
+        print(bottle_imgs.keys())
+        bottles_data_dict = create_in_pred_res_dict(bottle_model, bottle_imgs)
+        all_merged_bottles, all_merged_bottles_labels = create_images_batch_from_dict(bottles_data_dict)
 
-            bottle_imgs = get_img_dict(Path(r"./bottle/data"))
-            print(bottle_imgs.keys())
-            bottles_data_dict = create_in_pred_res_dict(bottle_model, bottle_imgs)
-            all_merged_bottles, all_merged_bottles_labels = create_images_batch_from_dict(bottles_data_dict)
-            for idx, k in enumerate(bottles_data_dict.keys()):
-                f, h, r = bottles_data_dict[k]
-                print(f"{idx, k}\nf - {f.shape}")
-                print(f"h - {h.shape}")
-                print(f"r - {r.shape}")
-                print()
+        btl_df, btl_plots = bottles_prediction(bottle_model, all_merged_bottles[0], all_merged_bottles_multiple[0],
+                                               all_merged_bottles_labels_multiple,
+                                               all_merged_bottles_labels, bottles_data_dict, bottles_data_dict_img,
+                                               Z_FACTOR=1.96,  # 95 %CI, use 2.57 for 99% CI
+                                               )
+        table1 = json.loads(btl_df.to_json(orient='records'))
 
-    # Single Images
-        if assessment_portfolio == '1':
-            bottle_imgs_input = get_img_dict_input(Path(rf"{testimage}"))
-            bottles_data_dict_input = create_in_pred_res_dict(bottle_model, bottle_imgs_input)
-            all_merged_bottles_input, all_merged_bottles_labels_input = create_images_batch_from_dict(bottles_data_dict_input)
-            for idx, k in enumerate(bottles_data_dict_input.keys()):
-                f_input, h_input, r_input = bottles_data_dict_input[k]
-                print(f"{idx, k}\nf_input - {f_input.shape}")
-                print(f"h_input - {h_input.shape}")
-                print(f"r_input - {r_input.shape}")
-                print()
+        print('table1:', table1)
 
-            btl_df, btl_plots = bottles_prediction(bottle_model, all_merged_bottles[0], all_merged_bottles_input[0],
-                                                   all_merged_bottles_labels_input,
-                                                   all_merged_bottles_labels, bottles_data_dict, bottles_data_dict_input,
-                                                   Z_FACTOR=1.96,  # 95 %CI, use 2.57 for 99% CI
-                                                   )
-            table = json.loads(btl_df.to_json(orient='records'))
-            print(table)
-            print(type(table))
-            context['data'] = table[0]
-            table_data = {}
-            table_data['table'] = table[0]
-            context['table_data'] = table_data
-            print(table_data)
-            context['lift_iqr'] = f"{btl_df['lift_iqr'][0]}"
-        # multiple files
-        else:
-            bottle_imgs_dic = get_img_dict_mutiple(Path(rf"{'media/test'}"))
-            bottles_data_dict_img = create_in_pred_res_dict(bottle_model, bottle_imgs_dic)
-            all_merged_bottles_multiple, all_merged_bottles_labels_multiple = create_images_batch_from_dict(bottles_data_dict_img)
-            for idx, k in enumerate(bottles_data_dict_img.keys()):
-                f_input, h_input, r_input = bottles_data_dict_img[k]
-                print(f"{idx, k}\nf_input - {f_input.shape}")
-                print(f"h_input - {h_input.shape}")
-                print(f"r_input - {r_input.shape}")
-                print()
+        list_of_values = []
+        lower_bound = []
+        upper_bound = []
+        input_img = []
+        prediction = []
+        lift_range = []
 
-            btl_df, btl_plots = bottles_prediction(bottle_model, all_merged_bottles[0], all_merged_bottles_multiple[0],
-                                                   all_merged_bottles_labels_multiple,
-                                                   all_merged_bottles_labels, bottles_data_dict, bottles_data_dict_img,
-                                                   Z_FACTOR=1.96,  # 95 %CI, use 2.57 for 99% CI
-                                                   )
-            table1 = json.loads(btl_df.to_json(orient='records'))
-            list_of_values = []
-            lower_bound = []
-            upper_bound = []
-            input_img = []
-            prediction = []
-            lift_range = []
-            for i in table1:
-                list_of_values.append(i.get('prediction_result'))
-                request.session['list_of_values'] = list_of_values
+        new_table.append(table1[0])
 
-            for i in table1:
-                lower_bound.append(i.get('lower_bound_range'))
-                request.session['lower_bound'] = lower_bound
+        for i in new_table:
+            list_of_values.append(i.get('prediction_result'))
+            request.session['list_of_values'] = list_of_values
 
-            for i in table1:
-                upper_bound.append(i.get('upper_bound_range'))
-                request.session['upper_bound'] = upper_bound
+        for i in new_table:
+            lower_bound.append(i.get('lower_bound_range'))
+            request.session['lower_bound'] = lower_bound
 
-            for i in table1:
-                input_img.append(i.get('input_img_range'))
-                request.session['input_img'] = input_img
+        for i in new_table:
+            upper_bound.append(i.get('upper_bound_range'))
+            request.session['upper_bound'] = upper_bound
 
-            for i in table1:
-                prediction.append(i.get('prediction'))
-                request.session['prediction'] = prediction
+        for i in new_table:
+            input_img.append(i.get('input_img_range'))
+            request.session['input_img'] = input_img
 
-            for i in table1:
-                lift_range.append(i.get('lift_range'))
-                request.session['lift_range'] = lift_range
+        for i in new_table:
+            prediction.append(i.get('prediction'))
+            request.session['prediction'] = prediction
 
-            print(lower_bound)
-            print(upper_bound)
-            print(input_img)
+        for i in new_table:
+            lift_range.append(i.get('lift_range'))
+            request.session['lift_range'] = lift_range
 
-            print(list_of_values)
-            print(table1)
-            print(type(table1))
-            data = table1
-            request.session['data'] = data
-            table_data1 = {}
-            table_data1['table1'] = table1
-            context['table_data1'] = table_data1
-            print(table_data1)
-            # context['lift_iqr'] = f"{btl_df['lift_iqr']}"
-            # context['lift_iqr'] = (btl_df.to_dict()["lift_iqr"])
-            print(list_of_files)
-            import matplotlib.pyplot as plt
-            import numpy as np
+        print(lower_bound)
+        print(upper_bound)
+        print(input_img)
 
-            values =np.array(list_of_values)
-            myvalues = [0, 1]
-            labels = ['Non-Defective', 'Defective']
+        print(list_of_values)
+        print(table1)
+        print(type(table1))
+        data = table1
+        request.session['data'] = data
+        table_data1 = {}
+        table_data1['table1'] = table1
+        context['table_data1'] = table_data1
+        print(table_data1)
+        # context['lift_iqr'] = f"{btl_df['lift_iqr']}"
+        # context['lift_iqr'] = (btl_df.to_dict()["lift_iqr"])
+        # print(list_of_files)
+        import matplotlib.pyplot as plt
+        import numpy as np
 
-            sum_of_true = [x for x in values if x == 1]
-            sum_of_false = [x for x in values if x == 0]
+        values =np.array(list_of_values)
+        myvalues = [0, 1]
+        labels = ['Non-Defective', 'Defective']
 
-            addition_of_true = len(sum_of_true)
-            addition_of_false = len(sum_of_false)
+        sum_of_true = [x for x in values if x == 1]
+        sum_of_false = [x for x in values if x == 0]
 
-            fig1 = go.Figure(data=[go.Pie(labels=labels, values=[addition_of_true, addition_of_false], pull=[0.1, 0.1])])
-            # fig1.update_layout(margin=dict(t=2, b=2, l=2, r=2))
-            fig1.update_layout(
-                autosize=False,
-                width=445,
-                height=450
-            )
-            fig1.update_traces(marker=dict(colors=['#12ABDB', '#0070AD']))
-            plot_div = offline.plot(fig1, output_type='div')
+        addition_of_true = len(sum_of_true)
+        addition_of_false = len(sum_of_false)
 
-            # for i in sum_of_true:
-            #     addition_of_true = addition_of_true + i
-            #
-            # for i in sum_of_false:
-            #     addition_of_false = addition_of_false + i
+        fig1 = go.Figure(data=[go.Pie(labels=labels, values=[addition_of_true, addition_of_false], pull=[0.1, 0.1])])
+        # fig1.update_layout(margin=dict(t=2, b=2, l=2, r=2))
+        fig1.update_layout(
+            autosize=False,
+            width=445,
+            height=450
+        )
+        fig1.update_traces(marker=dict(colors=['#12ABDB', '#0070AD']))
+        plot_div = offline.plot(fig1, output_type='div')
 
-            total = round(addition_of_true + addition_of_false)
-            y = np.array([addition_of_true, addition_of_false])
-            mylabels = [str(round(addition_of_true)), str(round(addition_of_false))]
-            s = ['Good', 'Bad']
-            good = round(addition_of_true)
-            bad = round(addition_of_false)
-            plt_1 = plt.figure(figsize=(5, 5))
-            colors = ['#12ABDB', '#0070AD']
-            plt.pie(y, labels=mylabels, colors=colors)
-            plt.legend(['Non-Defective', 'Defective'])
-            plt.show()
+        total = round(addition_of_true + addition_of_false)
+        y = np.array([addition_of_true, addition_of_false])
+        mylabels = [str(round(addition_of_true)), str(round(addition_of_false))]
+        s = ['Good', 'Bad']
+        good = round(addition_of_true)
+        bad = round(addition_of_false)
+        plt_1 = plt.figure(figsize=(5, 5))
+        colors = ['#12ABDB', '#0070AD']
 
-            plt_1.savefig("media/piechart/bottle_pie")
+        import pandas as pd
+        # x = round(list_of_values, 5)
 
+        # print('list_of_values:', list_of_values)
+        # print('list_of_files:', list_of_files)
+        # df = pd.DataFrame({
+        #     # 'list_of_values': list_of_values,
+        #     # 'Image': list_of_values,
+        #     # 'lower_bound': lower_bound,
+        #     'lift_range': request.session.get('lift_range'),
+        #     'list_of_files': request.session.get('list_of_files'),
+        # })
 
-            # fig1.show()
+        col = []
+        for x in list_of_values:
+            if x == 1:
+                col.append('#12ABDB')
+            else:
+                col.append('#0070AD')
 
-            # pull is given as a fraction of the pie radius
-            # values =np.array(list_of_values)
-            # fig1 = go.Figure(data=[go.Pie(labels=labels, values=values,, pull=[0, 0, 0.2, 0])])
-            # fig1.show()
-            # fig1 = go.Figure(data=[go.Pie(labels=labels, values=values, pull=[0, 0, 0.2, 0])])
-            # fig1 = plot([pie(labels=labels, values=values, colors=colors,)],
-            #             output_type='div', image_height=50, image_width=300,)
-            # trace = go.Pie(labels=labels, values=values,)
-            # data = [trace]
-            # fig1 = go.Figure(data = data)
-            # fig1.show()
+        fig = plot([Bar(x=request.session.get('list_of_files'), y=request.session.get('lift_range'), marker={'color': col},
+                        name='test',
+                        opacity=0.8, )],
+                   output_type='div', image_height=20, image_width=320,)
 
-            import pandas as pd
-            # x = round(list_of_values, 5)
+        # df.plot(kind='bar', y='lift_range', figsize=(7, 7), color=col)
+        # plt.xlabel("Input Image", fontsize=14)
+        # plt.ylabel("Lift Range", fontsize=14)
+        # plt.subplots_adjust(bottom=0.2)
+        # plt.savefig("media/piechart/bottle_bar")
 
-            print('list_of_values:', list_of_values)
-            print('list_of_files:', list_of_files)
-            df = pd.DataFrame({
-                # 'list_of_values': list_of_values,
-                'Image': list_of_values,
-                # 'lower_bound': lower_bound,
-                'lift_range': lift_range,
-                'list_of_files': list_of_files,
-            })
+        input_image = request.POST.get('input_image')
+        print(input_image)
+        print('prediction:', prediction)
+        print('list_of_values:', list_of_values)
+        image_count = os.listdir('media/test')
+        image_total = len(image_count)
 
-            # fig = px.bar(df, y='lift_range', x='list_of_files', text_auto='.2s',
-            #              title="Controlled text sizes, positions and angles")
-            # fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
-
-
-            # fig.write_image("media/piechart/bottle_new.jpeg")
-            # fig.write_image("media/bar_new", format='jpg')
-            # pio.write_image(fig, "media/piechart/bottle_new.png")
-            # fig.write_image("media/piechart/bottle_new", format='jpg')
-            # fig.savefig("media/piechart/bottle_bar")
-
-            col = []
-            for x in list_of_values:
-                if x == 1:
-                    col.append('#12ABDB')
-                else:
-                    col.append('#0070AD')
-
-            fig = plot([Bar(x=list_of_files, y=lift_range, marker={'color': col},
-                            name='test',
-                            opacity=0.8, )],
-                       output_type='div', image_height=20, image_width=320,)
-
-            df.plot(kind='bar', y='lift_range', figsize=(7, 7), color=col)
-            plt.xlabel("Input Image", fontsize=14)
-            plt.ylabel("Lift Range", fontsize=14)
-            plt.subplots_adjust(bottom=0.2)
-            plt.savefig("media/piechart/bottle_bar")
-
-            # import numpy as np
-            # import matplotlib.pyplot as plt
-            #
-            # x = 'list_of_values'
-            # y = 'Image'
-            #
-            # range1_list = [x for x in list_of_values if x == 1]
-            # range2_list = [x for x in list_of_values if x == 0]
-            # import ipdb
-            # ipdb.set_trace()
-            # col = []
-            # for x in list_of_values:
-            #     if x == 1:
-            #         col.append('green')
-            #     else:
-            #         col.append('red')
-            #
-            #     # elif i > '1':
-            #     #     col.append('red')
-            #
-            # # col looks like this: ['blue', 'blue', 'blue', 'blue', 'red', 'red', 'red', 'green', 'green', 'green']
-            #
-            # plt.bar(x, y, color=col)
-            # plt.savefig("media/bar11")
-
-            # # importing matplotlib
-            # import matplotlib.pyplot
-            #
-            # # importing pandas as pd
-            # import pandas as pd
-            #
-            # # importing numpy as np
-            # import numpy as np
-            #
-            # # creating a dataframe
-            # df = pd.DataFrame(np.random.rand(10, 20), columns=list_of_values)
-            #
-            # print(df)
-            # df.plot.bar()
-
-            input_image = request.POST.get('input_image')
-            print(input_image)
-
-            print(data)
-            print('prediction:', prediction)
-            print('list_of_values:', list_of_values)
-            image_count = os.listdir('media/test')
-            image_total = len(image_count)
-
-            context = {
-                'list_of_img': list_of_files,
-                'data': request.session.get('data'),
-                'images': list_of_files,
-                'lower_bound': request.session.get('lower_bound'),
-                'upper_bound': request.session.get('upper_bound'),
-                'input_img': request.session.get('input_img'),
-                'list_of_values': request.session.get('list_of_values'),
-                'total': total,
-                'good': good,
-                'bad': bad,
-                'prediction': request.session.get('prediction'),
-                'image_count':image_count,
-                'fig1': fig1,
-                'plot_div': plot_div,
-                'fig': fig,
-                # 'data1': data1,
-            }
-
-            # context['lift_iqr_1'] = f"{btl_df['lift_iqr'][1]}"
-            # context['lift_iqr_2'] = f"{btl_df['lift_iqr'][2]}"
-            # context['list_of_images'] = list_of_dict
+        request.session['repeat_count'] = repeat_count_total + 1
+        context = {
+            'list_of_img': request.session.get('list_of_files'),
+            'data': new_table,
+            'images': request.session.get('list_of_files'),
+            'lower_bound': request.session.get('lower_bound'),
+            'upper_bound': request.session.get('upper_bound'),
+            'input_img': request.session.get('input_img'),
+            'list_of_values': request.session.get('list_of_values'),
+            'total': len(image_count),
+            'good': good,
+            'bad': bad,
+            'prediction': request.session.get('prediction'),
+            'image_count':image_count,
+            'fig1': fig1,
+            'plot_div': plot_div,
+            'repeat_count': request.session.get('repeat_count'),
+            'fig': fig,
+            # 'data1': data1,
+        }
         return render(request, 'result.html', context)
     else:
         return render(request, 'upload_file.html')
+
+
+# @login_required()
+# def upload_file(request):
+#     if request.method == 'POST':
+#         context = {}
+#         assessment_portfolio: request.session.get('assessment_portfolio')
+#         uploaded_file = request.FILES['file1']
+#         file_list = []
+#         for i in request.FILES.getlist('file1'):
+#             file_list.append(i)
+#
+#         if len(file_list) is 0:
+#             try:
+#                 shutil.rmtree('media/test/')
+#             except Exception as ex:
+#                 pass
+#             os.mkdir('media/test')
+#             fs = FileSystemStorage()
+#             name = fs.save(uploaded_file.name, uploaded_file)
+#             context["url"] = fs.url(name)
+#             testimage = '.'+context["url"]
+#             context['name'] = testimage
+#             # testimage = image.load_img(name)
+#
+#             assessment_portfolio = request.session.get('assessment_portfolio')
+#             context["assessment_portfolio"] = assessment_portfolio
+#             context['test_image'] = testimage
+#             print(f"Imag url is {testimage}")
+#             bottle_imgs = get_img_dict(Path(r"./bottle/data"))
+#             print(bottle_imgs.keys())
+#             bottles_data_dict = create_in_pred_res_dict(bottle_model, bottle_imgs)
+#             all_merged_bottles, all_merged_bottles_labels = create_images_batch_from_dict(bottles_data_dict)
+#             for idx, k in enumerate(bottles_data_dict.keys()):
+#                 f, h, r = bottles_data_dict[k]
+#                 print(f"{idx, k}\nf - {f.shape}")
+#                 print(f"h - {h.shape}")
+#                 print(f"r - {r.shape}")
+#                 print()
+#         else:
+#             try:
+#                 shutil.rmtree('media/test/')
+#             except Exception as ex:
+#                 pass
+#             os.mkdir('media/test')
+#             fs = FileSystemStorage(location='media/test')
+#             for i in file_list:
+#                 path = os.listdir(settings.MEDIA_ROOT_TEST)
+#                 # try:
+#                 #     if i.name in path:
+#                 #         # path.remove(i.name)
+#                 #        os.remove('media/test/' + i.name)
+#                 # except Exception as ex:
+#                 #     print(ex)
+#
+#                 fs.save(i.name, i)
+#                 # context["url_{}".format(i)] = fs.url(fs.save(i.name, i))
+#                 # list_of_files = fs.url(fs.save(i.name, i))
+#                 # path = os.path.join(settings.BASE_DIR, 'media\\test\\')
+#
+#                 list_of_files = os.listdir('media/test')
+#                 context['list_of_files'] = list_of_files
+#                 print(len(list_of_files))
+#
+#                 # file = ('media/test/' + "url_{}".format(i))
+#
+#             assessment_portfolio = request.session.get('assessment_portfolio')
+#             context["assessment_portfolio"] = assessment_portfolio
+#
+#             # print(f"Imag url is {list_of_files}")
+#
+#             bottle_imgs = get_img_dict(Path(r"./bottle/data"))
+#             print(bottle_imgs.keys())
+#             bottles_data_dict = create_in_pred_res_dict(bottle_model, bottle_imgs)
+#             all_merged_bottles, all_merged_bottles_labels = create_images_batch_from_dict(bottles_data_dict)
+#             for idx, k in enumerate(bottles_data_dict.keys()):
+#                 f, h, r = bottles_data_dict[k]
+#                 print(f"{idx, k}\nf - {f.shape}")
+#                 print(f"h - {h.shape}")
+#                 print(f"r - {r.shape}")
+#                 print()
+#
+#     # Single Images
+#         if assessment_portfolio == '1':
+#             bottle_imgs_input = get_img_dict_input(Path(rf"{testimage}"))
+#             bottles_data_dict_input = create_in_pred_res_dict(bottle_model, bottle_imgs_input)
+#             all_merged_bottles_input, all_merged_bottles_labels_input = create_images_batch_from_dict(bottles_data_dict_input)
+#             for idx, k in enumerate(bottles_data_dict_input.keys()):
+#                 f_input, h_input, r_input = bottles_data_dict_input[k]
+#                 print(f"{idx, k}\nf_input - {f_input.shape}")
+#                 print(f"h_input - {h_input.shape}")
+#                 print(f"r_input - {r_input.shape}")
+#                 print()
+#
+#             btl_df, btl_plots = bottles_prediction(bottle_model, all_merged_bottles[0], all_merged_bottles_input[0],
+#                                                    all_merged_bottles_labels_input,
+#                                                    all_merged_bottles_labels, bottles_data_dict, bottles_data_dict_input,
+#                                                    Z_FACTOR=1.96,  # 95 %CI, use 2.57 for 99% CI
+#                                                    )
+#             table = json.loads(btl_df.to_json(orient='records'))
+#             print(table)
+#             print(type(table))
+#             context['data'] = table[0]
+#             table_data = {}
+#             table_data['table'] = table[0]
+#             context['table_data'] = table_data
+#             print(table_data)
+#             context['lift_iqr'] = f"{btl_df['lift_iqr'][0]}"
+#         # multiple files
+#         else:
+#             bottle_imgs_dic = get_img_dict_mutiple(Path(rf"{'media/test'}"))
+#             bottles_data_dict_img = create_in_pred_res_dict(bottle_model, bottle_imgs_dic)
+#             all_merged_bottles_multiple, all_merged_bottles_labels_multiple = create_images_batch_from_dict(bottles_data_dict_img)
+#             for idx, k in enumerate(bottles_data_dict_img.keys()):
+#                 f_input, h_input, r_input = bottles_data_dict_img[k]
+#                 print(f"{idx, k}\nf_input - {f_input.shape}")
+#                 print(f"h_input - {h_input.shape}")
+#                 print(f"r_input - {r_input.shape}")
+#                 print()
+#
+#             btl_df, btl_plots = bottles_prediction(bottle_model, all_merged_bottles[0], all_merged_bottles_multiple[0],
+#                                                    all_merged_bottles_labels_multiple,
+#                                                    all_merged_bottles_labels, bottles_data_dict, bottles_data_dict_img,
+#                                                    Z_FACTOR=1.96,  # 95 %CI, use 2.57 for 99% CI
+#                                                    )
+#             table1 = json.loads(btl_df.to_json(orient='records'))
+#             list_of_values = []
+#             lower_bound = []
+#             upper_bound = []
+#             input_img = []
+#             prediction = []
+#             lift_range = []
+#             for i in table1:
+#                 list_of_values.append(i.get('prediction_result'))
+#                 request.session['list_of_values'] = list_of_values
+#
+#             for i in table1:
+#                 lower_bound.append(i.get('lower_bound_range'))
+#                 request.session['lower_bound'] = lower_bound
+#
+#             for i in table1:
+#                 upper_bound.append(i.get('upper_bound_range'))
+#                 request.session['upper_bound'] = upper_bound
+#
+#             for i in table1:
+#                 input_img.append(i.get('input_img_range'))
+#                 request.session['input_img'] = input_img
+#
+#             for i in table1:
+#                 prediction.append(i.get('prediction'))
+#                 request.session['prediction'] = prediction
+#
+#             for i in table1:
+#                 lift_range.append(i.get('lift_range'))
+#                 request.session['lift_range'] = lift_range
+#
+#             print(lower_bound)
+#             print(upper_bound)
+#             print(input_img)
+#
+#             print(list_of_values)
+#             print(table1)
+#             print(type(table1))
+#             data = table1
+#             request.session['data'] = data
+#             table_data1 = {}
+#             table_data1['table1'] = table1
+#             context['table_data1'] = table_data1
+#             print(table_data1)
+#             # context['lift_iqr'] = f"{btl_df['lift_iqr']}"
+#             # context['lift_iqr'] = (btl_df.to_dict()["lift_iqr"])
+#             print(list_of_files)
+#             import matplotlib.pyplot as plt
+#             import numpy as np
+#
+#             values =np.array(list_of_values)
+#             myvalues = [0, 1]
+#             labels = ['Non-Defective', 'Defective']
+#
+#             sum_of_true = [x for x in values if x == 1]
+#             sum_of_false = [x for x in values if x == 0]
+#
+#             addition_of_true = len(sum_of_true)
+#             addition_of_false = len(sum_of_false)
+#
+#             fig1 = go.Figure(data=[go.Pie(labels=labels, values=[addition_of_true, addition_of_false], pull=[0.1, 0.1])])
+#             # fig1.update_layout(margin=dict(t=2, b=2, l=2, r=2))
+#             fig1.update_layout(
+#                 autosize=False,
+#                 width=445,
+#                 height=450
+#             )
+#             fig1.update_traces(marker=dict(colors=['#12ABDB', '#0070AD']))
+#             plot_div = offline.plot(fig1, output_type='div')
+#
+#             total = round(addition_of_true + addition_of_false)
+#             y = np.array([addition_of_true, addition_of_false])
+#             mylabels = [str(round(addition_of_true)), str(round(addition_of_false))]
+#             s = ['Good', 'Bad']
+#             good = round(addition_of_true)
+#             bad = round(addition_of_false)
+#             plt_1 = plt.figure(figsize=(5, 5))
+#             colors = ['#12ABDB', '#0070AD']
+#             plt.pie(y, labels=mylabels, colors=colors)
+#             plt.legend(['Non-Defective', 'Defective'])
+#             plt.show()
+#
+#             plt_1.savefig("media/piechart/bottle_pie")
+#
+#             import pandas as pd
+#             # x = round(list_of_values, 5)
+#
+#             print('list_of_values:', list_of_values)
+#             print('list_of_files:', list_of_files)
+#             df = pd.DataFrame({
+#                 # 'list_of_values': list_of_values,
+#                 'Image': list_of_values,
+#                 # 'lower_bound': lower_bound,
+#                 'lift_range': lift_range,
+#                 'list_of_files': list_of_files,
+#             })
+#
+#             col = []
+#             for x in list_of_values:
+#                 if x == 1:
+#                     col.append('#12ABDB')
+#                 else:
+#                     col.append('#0070AD')
+#
+#             fig = plot([Bar(x=list_of_files, y=lift_range, marker={'color': col},
+#                             name='test',
+#                             opacity=0.8, )],
+#                        output_type='div', image_height=20, image_width=320,)
+#
+#             df.plot(kind='bar', y='lift_range', figsize=(7, 7), color=col)
+#             plt.xlabel("Input Image", fontsize=14)
+#             plt.ylabel("Lift Range", fontsize=14)
+#             plt.subplots_adjust(bottom=0.2)
+#             plt.savefig("media/piechart/bottle_bar")
+#
+#             input_image = request.POST.get('input_image')
+#             print(input_image)
+#
+#             print(data)
+#             print('prediction:', prediction)
+#             print('list_of_values:', list_of_values)
+#             image_count = os.listdir('media/test')
+#             image_total = len(image_count)
+#
+#             context = {
+#                 'list_of_img': list_of_files,
+#                 'data': request.session.get('data'),
+#                 'images': list_of_files,
+#                 'lower_bound': request.session.get('lower_bound'),
+#                 'upper_bound': request.session.get('upper_bound'),
+#                 'input_img': request.session.get('input_img'),
+#                 'list_of_values': request.session.get('list_of_values'),
+#                 'total': total,
+#                 'good': good,
+#                 'bad': bad,
+#                 'prediction': request.session.get('prediction'),
+#                 'image_count':image_count,
+#                 'fig1': fig1,
+#                 'plot_div': plot_div,
+#                 'fig': fig,
+#                 # 'data1': data1,
+#             }
+#
+#             # context['lift_iqr_1'] = f"{btl_df['lift_iqr'][1]}"
+#             # context['lift_iqr_2'] = f"{btl_df['lift_iqr'][2]}"
+#             # context['list_of_images'] = list_of_dict
+#         return render(request, 'result.html', context)
+#     else:
+#         return render(request, 'upload_file.html')
 
 
 @login_required
@@ -1028,4 +1179,5 @@ def prac(request):
 @login_required
 def logout_user(request):
     logout(request)
+    request.session['repeat_count'] = 0
     return render(request, 'logout.html')

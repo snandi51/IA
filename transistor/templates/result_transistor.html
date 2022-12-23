@@ -109,6 +109,16 @@ max-height:700px;
     }
 </script>
 
+<script>
+    window.onload = function(){
+        var count = {{repeat_count|safe}}
+        var image_count = {{total|safe}}
+        if (count<image_count){
+            setTimeout(function() { window.location=window.location;}, 2000);
+        }
+    }
+</script>
+
 <!--<script>-->
 <!--    window.onload = function(){-->
 <!--            console.log('inside the function')-->

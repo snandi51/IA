@@ -217,8 +217,8 @@ def get_img_dict(directory: Path):
 
 def get_img_dict_input(directory: Path):
     tensor_dict = {}
-    dir_name=directory.name
-    fname=(dir_name.split("."))[0]
+    dir_name = directory.name
+    fname = dir_name
     curr_np_arr = np.array([
         np.array(Image.open(directory).resize((256, 256)))
     ])
@@ -359,7 +359,7 @@ def screw_prediction(screw_model,
     for input_img, gen_img, resmap, lbl in zip(curr_imgs, generated_images, residual_maps, labels):
         idx += 1
         curr_temp_tbl = copy.deepcopy(temp_tbl)
-        fig1, ax = plt.subplots(1, 2, figsize=(8, 3))
+        fig1, ax = plt.subplots(1, 2, figsize=(9, 5))
         #input_img = np.squeeze(input_img)
         ax[0].imshow(input_img)
         ax[0].title.set_text("input("+lbl+")")
@@ -516,235 +516,193 @@ import plotly.io as pio
 
 from plotly.offline import plot, offline
 from plotly.graph_objs import Bar, pie
+import shutil
 
 
+@login_required()
 def upload_screw(request):
     if request.method == 'POST':
-        context = {}
+        request.session['table_new'] = []
+        request.session['repeat_count'] = 0
         uploaded_file = request.FILES['file1']
-
-        assessment_portfolio = request.session.get('assessment_portfolio')
-        context["assessment_portfolio"] = assessment_portfolio
-
         file_list = []
         for i in request.FILES.getlist('file1'):
             file_list.append(i)
-
-        if len(file_list) is 1:
+        try:
+            shutil.rmtree('media/screw')
+            shutil.rmtree('media/screw_fig1')
+            shutil.rmtree('media/screw_fig2')
+        except Exception as ex:
             pass
-            fs = FileSystemStorage()
-            name = fs.save(uploaded_file.name, uploaded_file)
-            context["url"] = fs.url(name)
-            testimage = '.'+context["url"]
-            context['name'] = testimage
-            context['test_image'] = testimage
+        os.mkdir('media/screw')
+        os.mkdir('media/screw_fig1')
+        os.mkdir('media/screw_fig2')
+        fs = FileSystemStorage(location='media/screw')
+        for i in file_list:
+            # try:
+            #     if i.name in path:
+            #         os.remove('media/screw/' + i.name)
+            # except Exception as ex:
+            #     print(ex)
 
-            print(f"Imag url is {testimage}")
+            fs.save(i.name, i)
 
-            screw_imgs = get_img_dict(Path(r"./screw/data"))
-            screw_data_dict = create_in_pred_res_dict(screw_model, screw_imgs)
-            all_merged_screw, all_merged_screw_label = create_images_batch_from_dict(screw_data_dict)
-            for idx, k in enumerate(screw_data_dict.keys()):
-                f, h, r = screw_data_dict[k]
-                print(f"{idx, k}\norig - {f.shape}")
-                print(f"gene - {h.shape}")
-                print(f"resi - {r.shape}")
-                print()
-        #
-        else:
-            fs = FileSystemStorage(location='media/screw')
-            for i in file_list:
-                path = os.listdir(settings.MEDIA_ROOT_SCREW)
-                try:
-                    if i.name in path:
-                        os.remove('media/screw/' + i.name)
-                except Exception as ex:
-                    print(ex)
+        list_of_files = os.listdir('media/screw')
 
-                fs.save(i.name, i)
-                # context["url_{}".format(i)] = fs.url(fs.save(i.name, i))
-                # list_of_files = fs.url(fs.save(i.name, i))
-                # path = os.path.join(settings.BASE_DIR, 'media\\test\\')
+        request.session['list_of_files'] = list_of_files
 
-                list_of_files = os.listdir('media/screw')
-                context['list_of_files'] = list_of_files
+    if request.method == 'POST' or request.method == 'GET' and (request.session.get('repeat_count') != 0):
+        # assessment_portfolio: request.session.get('assessment_portfolio')
 
-            print(list_of_files)
-            screw_imgs = get_img_dict(Path(r"./screw/data"))
-            print(screw_imgs.keys())
-            screw_data_dict = create_in_pred_res_dict(screw_model, screw_imgs)
-            all_merged_screw, all_merged_screw_label = create_images_batch_from_dict(screw_data_dict)
-            for idx, k in enumerate(screw_data_dict.keys()):
-                f, h, r = screw_data_dict[k]
-                print(f"{idx, k}\norig - {f.shape}")
-                print(f"gene - {h.shape}")
-                print(f"resi - {r.shape}")
-                print()
+        new_table = request.session.get('table_new')
+        repeat_count_total = request.session.get('repeat_count')
+        context = {}
+        file_list = request.session.get('file_list')
 
-        if assessment_portfolio == '1':
-            pass
-        else:
-            screw_imgs_input = get_img_dict_mutiple(Path(rf"{'media/screw'}"))
-            screw_data_dict_input = create_in_pred_res_dict(screw_model, screw_imgs_input)
-            all_merged_screw_input, all_merged_screw_label_input = create_images_batch_from_dict(screw_data_dict_input)
-            for idx, k in enumerate(screw_data_dict_input.keys()):
-                f_input, h_input, r_input = screw_data_dict_input[k]
-                print(f"{idx, k}\norig - {f_input.shape}")
-                print(f"gene - {h_input.shape}")
-                print(f"resi - {r_input.shape}")
-                print()
+        screw_imgs_input = get_img_dict_input(Path(rf"{'media/screw/' + (request.session.get('list_of_files')[repeat_count_total])}"))
+        screw_data_dict_input = create_in_pred_res_dict(screw_model, screw_imgs_input)
+        all_merged_screw_input, all_merged_screw_label_input = create_images_batch_from_dict(screw_data_dict_input)
 
-            spl_df, spl_plots = screw_prediction(screw_model, all_merged_screw[0], all_merged_screw_input[0], all_merged_screw_label_input,
-                                                      all_merged_screw_label,
-                                                      screw_data_dict, screw_data_dict_input,
-                                                      Z_FACTOR = 1.96 # 95 %CI, use 2.57 for 99% CI
-                                                      )
-            print(spl_df)
-            table1 = json.loads(spl_df.to_json(orient='records'))
-            context['table1'] = table1
+        screw_imgs = get_img_dict(Path(r"./screw/data"))
+        print(screw_imgs.keys())
+        screw_data_dict = create_in_pred_res_dict(screw_model, screw_imgs)
+        all_merged_screw, all_merged_screw_label = create_images_batch_from_dict(screw_data_dict)
 
-            list_of_values = []
-            lower_bound = []
-            upper_bound = []
-            input_img = []
-            lift_range = []
-            prediction = []
-            for i in table1:
-                list_of_values.append(i.get('prediction_result'))
-                request.session['list_of_values'] = list_of_values
+        spl_df, spl_plots = screw_prediction(screw_model, all_merged_screw[0], all_merged_screw_input[0],
+                                             all_merged_screw_label_input,
+                                             all_merged_screw_label,
+                                             screw_data_dict, screw_data_dict_input,
+                                             Z_FACTOR = 1.96 # 95 %CI, use 2.57 for 99% CI
+                                             )
+        table1 = json.loads(spl_df.to_json(orient='records'))
 
-            for i in table1:
-                lower_bound.append(i.get('lower_bound_range'))
-                request.session['lower_bound'] = lower_bound
+        print('table1:', table1)
 
-            for i in table1:
-                upper_bound.append(i.get('upper_bound_range'))
-                request.session['upper_bound'] = upper_bound
+        list_of_values = []
+        lower_bound = []
+        upper_bound = []
+        input_img = []
+        prediction = []
+        lift_range = []
 
-            for i in table1:
-                input_img.append(i.get('input_img_range'))
-                request.session['input_img'] = input_img
+        new_table.append(table1[0])
 
-            for i in table1:
-                lift_range.append(i.get('lift_range'))
-                request.session['lift_range'] = lift_range
+        for i in new_table:
+            list_of_values.append(i.get('prediction_result'))
+            request.session['list_of_values'] = list_of_values
 
-            for i in table1:
-                prediction.append(i.get('prediction'))
-                request.session['prediction'] = prediction
+        for i in new_table:
+            lower_bound.append(i.get('lower_bound_range'))
+            request.session['lower_bound'] = lower_bound
 
-            print('lower bound:', lower_bound)
-            print(upper_bound)
-            print(input_img)
+        for i in new_table:
+            upper_bound.append(i.get('upper_bound_range'))
+            request.session['upper_bound'] = upper_bound
 
-            print(list_of_values)
-            print(table1)
-            print(type(table1))
-            data = table1
-            request.session['data'] = data
-            table_data1 = {}
-            table_data1['table1'] = table1
-            context['table_data1'] = table_data1
-            print(table_data1)
-            # context['lift_iqr'] = f"{btl_df['lift_iqr']}"
-            context['lift_iqr'] = (spl_df.to_dict()["lift_iqr"])
-            print(list_of_files)
-            import matplotlib.pyplot as plt
-            import numpy as np
+        for i in new_table:
+            input_img.append(i.get('input_img_range'))
+            request.session['input_img'] = input_img
 
-            values =np.array(list_of_values)
-            myvalues = [0, 1]
-            labels = ['Non-Defective', 'Defective']
+        for i in new_table:
+            prediction.append(i.get('prediction'))
+            request.session['prediction'] = prediction
 
-            sum_of_true = [x for x in values if x == 1]
-            sum_of_false = [x for x in values if x == 0]
+        for i in new_table:
+            lift_range.append(i.get('lift_range'))
+            request.session['lift_range'] = lift_range
 
-            addition_of_true = len(sum_of_true)
-            addition_of_false = len(sum_of_false)
+        print(lower_bound)
+        print(upper_bound)
+        print(input_img)
 
-            fig1 = go.Figure(data=[go.Pie(labels=labels, values=[addition_of_true, addition_of_false], pull=[0.1, 0.1])])
-            # fig1.update_layout(margin=dict(t=2, b=2, l=2, r=2))
-            fig1.update_layout(
-                autosize=False,
-                width=445,
-                height=450
-            )
-            fig1.update_traces(marker=dict(colors=['#12ABDB', '#0070AD']))
-            plot_div = offline.plot(fig1, output_type='div')
+        print(list_of_values)
+        print(table1)
+        print(type(table1))
+        data = table1
+        request.session['data'] = data
+        table_data1 = {}
+        table_data1['table1'] = table1
+        context['table_data1'] = table_data1
+        print(table_data1)
+        # context['lift_iqr'] = f"{btl_df['lift_iqr']}"
+        # context['lift_iqr'] = (btl_df.to_dict()["lift_iqr"])
+        # print(list_of_files)
+        import matplotlib.pyplot as plt
+        import numpy as np
 
-            total = round(addition_of_true + addition_of_false)
-            y = np.array([addition_of_true, addition_of_false])
-            mylabels = [str(round(addition_of_true)), str(round(addition_of_false))]
-            s = ['Good', 'Bad']
-            good = round(addition_of_true)
-            bad = round(addition_of_false)
-            plt_1 = plt.figure(figsize=(5, 5))
-            colors = ['#12ABDB', '#0070AD']
-            plt.pie(y, labels=mylabels, colors=colors)
-            plt.legend(['Non-Defective', 'Defective'])
-            plt.show()
+        values =np.array(list_of_values)
+        myvalues = [0, 1]
+        labels = ['Non-Defective', 'Defective']
 
-            plt_1.savefig("media/piechart/screw_pie4")
+        sum_of_true = [x for x in values if x == 1]
+        sum_of_false = [x for x in values if x == 0]
 
-            import pandas as pd
-            # x = round(list_of_values, 5)
+        addition_of_true = len(sum_of_true)
+        addition_of_false = len(sum_of_false)
 
-            print('list_of_values:', list_of_values)
-            print('list_of_files:', list_of_files)
-            df = pd.DataFrame({
-                'list_of_values': list_of_values,
-                'Image': list_of_values,
-                'lower_bound': lower_bound,
-                'input_img': input_img,
-                'lift_range': lift_range,
-            })
+        fig1 = go.Figure(data=[go.Pie(labels=labels, values=[addition_of_true, addition_of_false], pull=[0.1, 0.1])])
+        # fig1.update_layout(margin=dict(t=2, b=2, l=2, r=2))
+        fig1.update_layout(
+            autosize=False,
+            width=445,
+            height=450
+        )
+        fig1.update_traces(marker=dict(colors=['#12ABDB', '#0070AD']))
+        plot_div = offline.plot(fig1, output_type='div')
 
-            col = []
-            for x in list_of_values:
-                if x == 1:
-                    col.append('#12ABDB')
-                else:
-                    col.append('#0070AD')
+        total = round(addition_of_true + addition_of_false)
+        y = np.array([addition_of_true, addition_of_false])
+        mylabels = [str(round(addition_of_true)), str(round(addition_of_false))]
+        s = ['Good', 'Bad']
+        good = round(addition_of_true)
+        bad = round(addition_of_false)
+        plt_1 = plt.figure(figsize=(5, 5))
+        colors = ['#12ABDB', '#0070AD']
 
-            fig = plot([Bar(x=list_of_files, y=lift_range, marker={'color': col},
-                            name='test',
-                            opacity=0.8)],
-                       output_type='div', image_height=30, image_width=340,)
+        import pandas as pd
 
-            df.plot(kind='bar', y='lift_range', figsize=(7, 7), color=col)
-            plt.xlabel("Input Image", fontsize=14)
-            plt.ylabel("Lift Range", fontsize=14)
-            plt.subplots_adjust(bottom=0.2)
-            plt.savefig("media/piechart/bottle_bar")
-            range1_list = [x for x in list_of_values if x <= 1]
-            range2_list = [x for x in list_of_values if x > 1]
-            df.plot(kind='bar', y='lift_range', figsize=(7, 7), color=col)
-            plt.xlabel("Input Image", fontsize=14)
-            plt.ylabel("Lift Range", fontsize=14)
-            # df.plot(kind='bar', x=range2_list, y='Image', figsize=(7, 7), color='red')
-            plt.subplots_adjust(bottom=0.2)
-            plt.savefig("media/piechart/screw_bar3")
+        col = []
+        for x in list_of_values:
+            if x == 1:
+                col.append('#12ABDB')
+            else:
+                col.append('#0070AD')
 
-            print(data)
+        fig = plot([Bar(x=request.session.get('list_of_files'), y=request.session.get('lift_range'), marker={'color': col},
+                        name='test',
+                        opacity=0.8, )],
+                   output_type='div', image_height=20, image_width=320,)
 
-            context = {
-                'list_of_img': list_of_files,
-                'data': request.session.get('data'),
-                'images': list_of_files,
-                'lower_bound': request.session.get('lower_bound'),
-                'upper_bound': request.session.get('upper_bound'),
-                'input_img': request.session.get('input_img'),
-                'list_of_values': request.session.get('list_of_values'),
-                'total': total,
-                'good': good,
-                'bad': bad,
-                'prediction': request.session.get('prediction'),
-                'plot_div': plot_div,
-                'fig': fig,
-                # 'data1': data1,
-            }
-            return render(request, 'result_screw.html', context)
-    return render(request, 'upload_screw.html')
+        input_image = request.POST.get('input_image')
+        print(input_image)
+        print('prediction:', prediction)
+        print('list_of_values:', list_of_values)
+        image_count = os.listdir('media/screw')
+        image_total = len(image_count)
+
+        request.session['repeat_count'] = repeat_count_total + 1
+        context = {
+            'list_of_img': request.session.get('list_of_files'),
+            'data': new_table,
+            'images': request.session.get('list_of_files'),
+            'lower_bound': request.session.get('lower_bound'),
+            'upper_bound': request.session.get('upper_bound'),
+            'input_img': request.session.get('input_img'),
+            'list_of_values': request.session.get('list_of_values'),
+            'total': len(image_count),
+            'good': good,
+            'bad': bad,
+            'prediction': request.session.get('prediction'),
+            'image_count':image_count,
+            'fig1': fig1,
+            'plot_div': plot_div,
+            'repeat_count': request.session.get('repeat_count'),
+            'fig': fig,
+            # 'data1': data1,
+        }
+        return render(request, 'result_screw.html', context)
+    else:
+        return render(request, 'upload_screw.html')
 
 
 @login_required

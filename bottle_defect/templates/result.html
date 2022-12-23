@@ -117,6 +117,17 @@ max-height:700px;
     }
 </script>
 
+<script>
+    window.onload = function(){
+        var count = {{repeat_count|safe}}
+        var image_count = {{total|safe}}
+        if (count<image_count){
+            setTimeout(function() { window.location=window.location;}, 2000);
+        }
+    }
+</script>
+
+
 <!--<script>-->
 <!--    window.onload = function(){-->
 <!--            console.log('inside the function')-->
@@ -1008,7 +1019,7 @@ max-height:700px;
             </div>
         </div>
 
-        <h4 style="color:white; margin-left:450px; font-size:18px; ">(To know more detail of each model click on file Name)</h4>
+        <h4 style="color:white; margin-left:320px;  font-family:Calibri; font-size:18px; ">(Onces all image is uploaded you can click on File Name i.e "000.png" to get more details)</h4>
         <!--        <div id="content11" style="display: flex; background-color:white; width:960px; margin-top: 30px; margin-left:150px; overflow-y: scroll; overflow-x:hidden;">-->
         <div class="scrollmenu scrollbar-ripe-malinka" style="display: flex; background-color:white; border: 2px solid #7249AE; width:960px; margin-top: 30px; margin-left:150px;">
             <h5 style="font-family: Calibri; font-size:18px; color:#7249AE;"><b>Analysis on input images</b></h5>

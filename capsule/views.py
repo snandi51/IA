@@ -240,8 +240,8 @@ def get_img_dict_mutiple(directory: Path):
 
 def get_img_dict_input(directory: Path):
     tensor_dict = {}
-    dir_name=directory.name
-    fname=(dir_name.split("."))[0]
+    dir_name = directory.name
+    fname = dir_name
     curr_np_arr = np.array([
         np.array(Image.open(directory).resize((256, 256)))
     ])
@@ -615,270 +615,219 @@ import plotly.io as pio
 
 from plotly.offline import plot, offline
 from plotly.graph_objs import Bar, pie
+import shutil
 
 
+@login_required()
 def upload_capsule(request):
     if request.method == 'POST':
-        context = {}
+        request.session['table_new'] = []
+        request.session['repeat_count'] = 0
         uploaded_file = request.FILES['file1']
-
-        assessment_portfolio = request.session.get('assessment_portfolio')
-        context["assessment_portfolio"] = assessment_portfolio
 
         file_list = []
         for i in request.FILES.getlist('file1'):
             file_list.append(i)
-
-        if len(file_list) is 1:
+        try:
+            shutil.rmtree('media/capsule')
+            shutil.rmtree('media/capsule_fig1/')
+            shutil.rmtree('media/capsule_fig2/')
+        except Exception as ex:
             pass
-            fs = FileSystemStorage()
-            name = fs.save(uploaded_file.name, uploaded_file)
-            context["url"] = fs.url(name)
-            testimage = '.'+context["url"]
-            context['name'] = testimage
-            context['test_image'] = testimage
+        os.mkdir('media/capsule')
+        os.mkdir('media/capsule_fig1')
+        os.mkdir('media/capsule_fig2')
+        fs = FileSystemStorage(location='media/capsule')
+        for i in file_list:
+            path = os.listdir(settings.MEDIA_ROOT_CAPSULE)
+            # try:
+            #     if i.name in path:
+            #         # path.remove(i.name)
+            #         os.remove('media/capsule/' + i.name)
+            # except Exception as ex:
+            #     print(ex)
 
-            print(f"Imag url is {testimage}")
+            fs.save(i.name, i)
+            # context["url_{}".format(i)] = fs.url(fs.save(i.name, i))
+            # list_of_files = fs.url(fs.save(i.name, i))
+            # path = os.path.join(settings.BASE_DIR, 'media\\test\\')
 
-            capsule_imgs = get_img_dict(Path(r"./capsule/data"))
-            capsules_data_dict = create_in_pred_res_dict(cap_model, capsule_imgs)
-            all_merged_capsules, all_merged_capsules_label = create_images_batch_from_dict(capsules_data_dict)
-            for idx, k in enumerate(capsules_data_dict.keys()):
-                f, h, r = capsules_data_dict[k]
-                print(f"{idx, k}\norig - {f.shape}")
-                print(f"gene - {h.shape}")
-                print(f"resi - {r.shape}")
-                print()
-    #
-        else:
-            fs = FileSystemStorage(location='media/capsule')
-            for i in file_list:
-                path = os.listdir(settings.MEDIA_ROOT_CAPSULE)
-                try:
-                    if i.name in path:
-                        # path.remove(i.name)
-                        os.remove('media/capsule/' + i.name)
-                except Exception as ex:
-                    print(ex)
+        list_of_files = os.listdir('media/capsule')
 
-                fs.save(i.name, i)
-                # context["url_{}".format(i)] = fs.url(fs.save(i.name, i))
-                # list_of_files = fs.url(fs.save(i.name, i))
-                # path = os.path.join(settings.BASE_DIR, 'media\\test\\')
+        request.session['list_of_files'] = list_of_files
 
-                list_of_files = os.listdir('media/capsule')
-                context['list_of_files'] = list_of_files
+    if request.method == 'POST' or request.method == 'GET' and (request.session.get('repeat_count') != 0):
+        # assessment_portfolio: request.session.get('assessment_portfolio')
 
-            print(list_of_files)
-            # capsule_imgs = get_img_dict(Path(r"./capsule/data"))
-            capsule_imgs = get_img_dict(Path(r"./capsule/data"))
-            print(capsule_imgs.keys())
-            capsules_data_dict = create_in_pred_res_dict(cap_model, capsule_imgs)
-            all_merged_capsules, all_merged_capsules_label = create_images_batch_from_dict(capsules_data_dict)
-            for idx, k in enumerate(capsules_data_dict.keys()):
-                f, h, r = capsules_data_dict[k]
-                print(f"{idx, k}\norig - {f.shape}")
-                print(f"gene - {h.shape}")
-                print(f"resi - {r.shape}")
-                print()
+        new_table = request.session.get('table_new')
+        repeat_count_total = request.session.get('repeat_count')
+        context = {}
+        file_list = request.session.get('file_list')
 
-        if assessment_portfolio == '1':
-            pass
-        else:
-            capsule_imgs_input = get_img_dict_mutiple(Path(rf"{'media/capsule'}"))
-            capsules_data_dict_input = create_in_pred_res_dict(cap_model, capsule_imgs_input)
-            all_merged_capsules_input, all_merged_capsules_label_input = create_images_batch_from_dict(capsules_data_dict_input)
-            for idx, k in enumerate(capsules_data_dict_input.keys()):
-                f_input, h_input, r_input = capsules_data_dict_input[k]
-                print(f"{idx, k}\norig - {f_input.shape}")
-                print(f"gene - {h_input.shape}")
-                print(f"resi - {r_input.shape}")
-                print()
+        capsule_imgs_input = get_img_dict_input(Path(rf"{'media/capsule/'+ (request.session.get('list_of_files')[repeat_count_total])}"))
+        capsules_data_dict_input = create_in_pred_res_dict(cap_model, capsule_imgs_input)
+        all_merged_capsules_input, all_merged_capsules_label_input = create_images_batch_from_dict(capsules_data_dict_input)
 
-            cpl_df, cpl_plots = capsules_prediction(cap_model, all_merged_capsules[0], all_merged_capsules_input[0], all_merged_capsules_label_input,
-                                                    all_merged_capsules_label,
-                                                    capsules_data_dict, capsules_data_dict_input,
-                                                    Z_FACTOR = 1.96 # 95 %CI, use 2.57 for 99% CI
-                                                    )
-            print(cpl_df)
-            table = json.loads(cpl_df.to_json(orient='records'))
-            context['table'] = table
+        capsule_imgs = get_img_dict(Path(r"./capsule/data"))
+        print(capsule_imgs.keys())
+        capsules_data_dict = create_in_pred_res_dict(cap_model, capsule_imgs)
+        all_merged_capsules, all_merged_capsules_label = create_images_batch_from_dict(capsules_data_dict)
 
-            list_of_values_right = []
-            list_of_values_left = []
-            lower_bound_left = []
-            upper_bound_left = []
-            lower_bound_right = []
-            upper_bound_right = []
-            lift_range_right = []
-            lift_range_left = []
-            input_img = []
-            for i in table:
-                list_of_values_right.append(i.get('prediction_result'))
-                request.session['list_of_values_right'] = list_of_values_right
+        cpl_df, cpl_plots = capsules_prediction(cap_model, all_merged_capsules[0], all_merged_capsules_input[0],
+                                                all_merged_capsules_label_input,
+                                                all_merged_capsules_label,
+                                                capsules_data_dict, capsules_data_dict_input,
+                                                Z_FACTOR = 1.96 # 95 %CI, use 2.57 for 99% CI
+                                                )
+        table1 = json.loads(cpl_df.to_json(orient='records'))
 
-            for i in table:
-                list_of_values_left.append(i.get('input_img_range_left'))
-                request.session['list_of_values_left'] = list_of_values_left
+        print('table1:', table1)
 
-            for i in table:
-                lower_bound_left.append(i.get('lower_bound_range_left'))
-                request.session['lower_bound_left'] = lower_bound_left
+        list_of_values_right = []
+        list_of_values_left = []
+        lower_bound_left = []
+        upper_bound_left = []
+        lower_bound_right = []
+        upper_bound_right = []
+        lift_range_right = []
+        lift_range_left = []
+        input_img = []
 
-            for i in table:
-                lower_bound_right.append(i.get('lower_bound_range_right'))
-                request.session['lower_bound_right'] = lower_bound_right
+        new_table.append(table1[0])
 
-            for i in table:
-                upper_bound_left.append(i.get('upper_bound_range_left'))
-                request.session['upper_bound_left'] = upper_bound_left
+        for i in new_table:
+            list_of_values_right.append(i.get('prediction_result'))
+            request.session['list_of_values_right'] = list_of_values_right
 
-            for i in table:
-                upper_bound_right.append(i.get('upper_bound_range_right'))
-                request.session['upper_bound_right'] = upper_bound_right
+        for i in new_table:
+            list_of_values_left.append(i.get('input_img_range_left'))
+            request.session['list_of_values_left'] = list_of_values_left
 
-            for i in table:
-                input_img.append(i.get('input_img_range_left'))
-                request.session['input_img'] = input_img
+        for i in new_table:
+            lower_bound_left.append(i.get('lower_bound_range_left'))
+            request.session['lower_bound_left'] = lower_bound_left
 
-            for i in table:
-                lift_range_right.append(i.get('lift_range_right'))
-                request.session['lift_range_right'] = lift_range_right
+        for i in new_table:
+            lower_bound_right.append(i.get('lower_bound_range_right'))
+            request.session['lower_bound_right'] = lower_bound_right
 
-            for i in table:
-                lift_range_left.append(i.get('lift_range_left'))
-                request.session['lift_range_left'] = lift_range_left
+        for i in new_table:
+            upper_bound_left.append(i.get('upper_bound_range_left'))
+            request.session['upper_bound_left'] = upper_bound_left
 
-            data = table
-            request.session['data'] = data
-            print('DATA:', data)
+        for i in new_table:
+            upper_bound_right.append(i.get('upper_bound_range_right'))
+            request.session['upper_bound_right'] = upper_bound_right
 
-            import matplotlib.pyplot as plt
-            import numpy as np
+        for i in new_table:
+            input_img.append(i.get('input_img_range_left'))
+            request.session['input_img'] = input_img
 
-            list_of_values = list_of_values_right
-            print(list_of_values)
-            values =np.array(list_of_values)
-            myvalues = [0, 1]
-            labels = ['Non-Defective', 'Defective']
+        for i in new_table:
+            lift_range_right.append(i.get('lift_range_right'))
+            request.session['lift_range_right'] = lift_range_right
 
-            sum_of_true = [x for x in values if x == 1]
-            sum_of_false = [x for x in values if x == 0]
-
-            addition_of_true = len(sum_of_true)
-            addition_of_false = len(sum_of_false)
-
-            fig1 = go.Figure(data=[go.Pie(labels=labels, values=[addition_of_true, addition_of_false], pull=[0.1, 0.1])])
-            # fig1.update_layout(margin=dict(t=2, b=2, l=2, r=2))
-            fig1.update_layout(
-                autosize=False,
-                width=445,
-                height=450
-            )
-            fig1.update_traces(marker=dict(colors=['#12ABDB', '#0070AD']))
-            plot_div = offline.plot(fig1, output_type='div')
-
-            total = round(addition_of_true + addition_of_false)
-            y = np.array([addition_of_true, addition_of_false])
-            mylabels = [str(round(addition_of_true)), str(round(addition_of_false))]
-            s = ['Good', 'Bad']
-            good = round(addition_of_true)
-            bad = round(addition_of_false)
-            plt_1 = plt.figure(figsize=(5, 5))
-            colors = ['#12ABDB', '#0070AD']
-            plt.pie(y, labels=mylabels, colors=colors)
-            plt.legend(['Non-Defective', 'Defective'])
-            plt.show()
-
-            plt_1.savefig("media/piechart/capsule_pie")
-
-            import pandas as pd
-            # x = round(list_of_values, 5)
-
-            print('list_of_values:', list_of_values)
-            print('list_of_files:', list_of_files)
+        for i in new_table:
+            lift_range_left.append(i.get('lift_range_left'))
+            request.session['lift_range_left'] = lift_range_left
 
 
-            df = pd.DataFrame({
-                'list_of_values': list_of_values,
-                'Image': list_of_values,
-                'lower_bound_right': lower_bound_right,
-                'list_of_values_left': list_of_values_left,
-                'lift_range_left': lift_range_left,
+        table_data1 = {}
+        table_data1['table1'] = table1
+        context['table_data1'] = table_data1
+        print(table_data1)
+        # context['lift_iqr'] = f"{btl_df['lift_iqr']}"
+        # context['lift_iqr'] = (btl_df.to_dict()["lift_iqr"])
+        # print(list_of_files)
+        import matplotlib.pyplot as plt
+        import numpy as np
 
-            })
+        values =np.array(list_of_values_right)
+        myvalues = [0, 1]
+        labels = ['Non-Defective', 'Defective']
 
-            col_left = []
-            for x in list_of_values:
-                if x == 1:
-                    col_left.append('#12ABDB')
-                else:
-                    col_left.append('#0070AD')
+        sum_of_true = [x for x in values if x == 1]
+        sum_of_false = [x for x in values if x == 0]
 
-            fig = plot([Bar(x=list_of_files, y=list_of_values_left, marker={'color': col_left},
-                            name='test',
-                            opacity=0.8, )],
-                       output_type='div', image_height=30, image_width=340,)
+        addition_of_true = len(sum_of_true)
+        addition_of_false = len(sum_of_false)
 
-            range1_list = [x for x in list_of_values if x <= 1]
-            range2_list = [x for x in list_of_values if x > 1]
-            df.plot(kind='bar', y='lift_range_left', figsize=(7, 7), color=col_left)
-            plt.xlabel("Input Image", fontsize=14)
-            plt.ylabel("Lift Range Left", fontsize=14)
-            # df.plot(kind='bar', x=range2_list, y='Image', figsize=(7, 7), color='red')
-            plt.subplots_adjust(bottom=0.2)
-            plt.savefig("media/piechart/capsule_bar")
+        fig1 = go.Figure(data=[go.Pie(labels=labels, values=[addition_of_true, addition_of_false], pull=[0.1, 0.1])])
+        # fig1.update_layout(margin=dict(t=2, b=2, l=2, r=2))
+        fig1.update_layout(
+            autosize=False,
+            width=445,
+            height=450
+        )
+        fig1.update_traces(marker=dict(colors=['#12ABDB', '#0070AD']))
+        plot_div = offline.plot(fig1, output_type='div')
 
-            col_right = []
-            for x in list_of_values_right:
-                if x == 1:
-                    col_right.append('#12ABDB')
-                else:
-                    col_right.append('#FF6327')
+        total = round(addition_of_true + addition_of_false)
+        y = np.array([addition_of_true, addition_of_false])
+        mylabels = [str(round(addition_of_true)), str(round(addition_of_false))]
+        s = ['Good', 'Bad']
+        good = round(addition_of_true)
+        bad = round(addition_of_false)
+        plt_1 = plt.figure(figsize=(5, 5))
+        colors = ['#12ABDB', '#0070AD']
 
-            fig2 = plot([Bar(x=list_of_files, y=list_of_values_right, marker={'color': col_right},
-                            name='test',
-                            opacity=0.8, )],
-                       output_type='div', image_height=50, image_width=300,)
+        import pandas as pd
+        # x = round(list_of_values, 5)
 
-            df = pd.DataFrame({
-                'list_of_values': list_of_values,
-                'Image': list_of_values,
-                'lower_bound_right': lower_bound_right,
-                'list_of_values_right': list_of_values_right,
-                'lift_range_right': lift_range_right,
+        # print('list_of_values:', list_of_values)
+        # print('list_of_files:', list_of_files)
+        # df = pd.DataFrame({
+        #     # 'list_of_values': list_of_values,
+        #     # 'Image': list_of_values,
+        #     # 'lower_bound': lower_bound,
+        #     'lift_range': request.session.get('lift_range'),
+        #     'list_of_files': request.session.get('list_of_files'),
+        # })
 
-            })
+        col_left = []
+        for x in list_of_values_left:
+            if x == 1:
+                col_left.append('#12ABDB')
+            else:
+                col_left.append('#0070AD')
 
-            range1_list = [x for x in list_of_values if x <= 1]
-            range2_list = [x for x in list_of_values if x > 1]
-            df.plot(kind='bar', y='lift_range_right', figsize=(7, 7), color=col_right)
-            plt.xlabel("Input Image", fontsize=14)
-            plt.ylabel("Lift Range Right", fontsize=14)
-            # df.plot(kind='bar', x=range2_list, y='Image', figsize=(7, 7), color='red')
-            plt.subplots_adjust(bottom=0.2)
-            plt.savefig("media/piechart/capsule_bar2")
+        fig = plot([Bar(x=request.session.get('list_of_files'), y=request.session.get('list_of_values_left'), marker={'color': col_left},
+                        name='test',
+                        opacity=0.8, )],
+                   output_type='div', image_height=30, image_width=340,)
 
-            context['lift_iqr_left'] = f"{cpl_df['lift_iqr_left'][0]}"
-            context['lift_iqr_right'] = f"{cpl_df['lift_iqr_right'][0]}"
+        # df.plot(kind='bar', y='lift_range', figsize=(7, 7), color=col)
+        # plt.xlabel("Input Image", fontsize=14)
+        # plt.ylabel("Lift Range", fontsize=14)
+        # plt.subplots_adjust(bottom=0.2)
+        # plt.savefig("media/piechart/bottle_bar")
 
-            context = {
-                'list_of_img': list_of_files,
-                'data': data,
-                'images': list_of_files,
-                'total': total,
-                'good': good,
-                'bad': bad,
-                'lower_bound_left': request.session.get('lower_bound_left'),
-                'upper_bound_left': request.session.get('upper_bound_left'),
-                'lower_bound_right': request.session.get('lower_bound_right'),
-                'upper_bound_right': request.session.get('upper_bound_right'),
-                'plot_div': plot_div,
-                'fig': fig,
-                'fig2': fig2,
-            }
+        input_image = request.POST.get('input_image')
+        print(input_image)
+
+        image_count = os.listdir('media/capsule')
+        image_total = len(image_count)
+
+        request.session['repeat_count'] = repeat_count_total + 1
+        context = {
+            'list_of_img': request.session.get('list_of_files'),
+            'data': new_table,
+            'images': request.session.get('list_of_files'),
+            'total': len(image_count),
+            'good': good,
+            'bad': bad,
+            'repeat_count': request.session.get('repeat_count'),
+            'lower_bound_left': request.session.get('lower_bound_left'),
+            'upper_bound_left': request.session.get('upper_bound_left'),
+            'lower_bound_right': request.session.get('lower_bound_right'),
+            'upper_bound_right': request.session.get('upper_bound_right'),
+            'plot_div': plot_div,
+            'fig': fig,
+            # 'fig2': fig2,
+        }
         return render(request, 'result_capsule.html', context)
-    return render(request, 'upload_capsule.html')
+    else:
+        return render(request, 'upload_capsule.html')
 
 
 def result_capsule(request):
