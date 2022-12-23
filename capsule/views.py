@@ -586,6 +586,7 @@ def capsules_prediction(cap_model,
             lift_range_left=abs((comparison_df.loc[0, 'left_range']-closest_left)/closest_left) * 100
             final_stat_dict['lift_range_right'].append(lift_range_right)
             final_stat_dict['lift_range_left'].append(lift_range_left)
+            print('final_stat_dict', final_stat_dict)
 
     final_stats_df = pd.DataFrame(final_stat_dict)
 
@@ -656,7 +657,9 @@ def upload_capsule(request):
 
         request.session['list_of_files'] = list_of_files
 
-    if request.method == 'POST' or request.method == 'GET' and (request.session.get('repeat_count') != 0):
+    get_request = request.GET.get('search')
+    if request.method == 'POST' or request.method == 'GET' and get_request:
+    # if request.method == 'POST' or request.method == 'GET' and (request.session.get('repeat_count') != 0):
         # assessment_portfolio: request.session.get('assessment_portfolio')
 
         new_table = request.session.get('table_new')

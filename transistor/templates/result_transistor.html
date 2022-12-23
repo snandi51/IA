@@ -114,7 +114,10 @@ max-height:700px;
         var count = {{repeat_count|safe}}
         var image_count = {{total|safe}}
         if (count<image_count){
-            setTimeout(function() { window.location=window.location;}, 500);
+            setTimeout(function(){
+         var num = 0;
+         window.location.href = "{% url 'upload_file' %}" + "?search="+num
+            }, 500)
         }
     }
 </script>

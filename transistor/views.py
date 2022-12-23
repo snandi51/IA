@@ -537,7 +537,8 @@ def upload_transistor(request):
 
         request.session['list_of_files'] = list_of_files
 
-    if request.method == 'POST' or request.method == 'GET' and (request.session.get('repeat_count') != 0):
+    get_request = request.GET.get('search')
+    if request.method == 'POST' or request.method == 'GET' and get_request:
         # assessment_portfolio: request.session.get('assessment_portfolio')
 
         new_table = request.session.get('table_new')

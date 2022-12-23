@@ -646,6 +646,7 @@ import shutil
 @login_required()
 def upload_file(request):
     if request.method == 'POST':
+        print("==============================Post Request===============================")
         request.session['table_new'] = []
         request.session['repeat_count'] = 0
         uploaded_file = request.FILES['file1']
@@ -679,7 +680,8 @@ def upload_file(request):
 
         request.session['list_of_files'] = list_of_files
 
-    if request.method == 'POST' or request.method == 'GET' and (request.session.get('repeat_count') != 0):
+    get_request = request.GET.get('search')
+    if request.method == 'POST' or request.method == 'GET' and get_request:
         # assessment_portfolio: request.session.get('assessment_portfolio')
 
         new_table = request.session.get('table_new')
@@ -852,6 +854,7 @@ def upload_file(request):
         }
         return render(request, 'result.html', context)
     else:
+        request.session['repeat_count'] = 0
         return render(request, 'upload_file.html')
 
 
